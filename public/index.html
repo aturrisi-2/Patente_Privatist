@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Esame Patente B — Simulatore Ufficiale Motorizzazione Civile</title>
+  <link rel="stylesheet" href="/css/exam.css" />
+</head>
+<body>
+  <!-- =========================================================
+       SCHERMATA 1: SELEZIONE TEST & REGOLE (PRE-ESAME)
+       ========================================================= -->
+  <div id="screen-start" class="screen screen-active">
+    <header class="mit-header">
+      <div class="mit-brand">
+        <div class="mit-emblem" aria-hidden="true">MIT</div>
+        <div>
+          <div class="mit-title">MINISTERO DELLE INFRASTRUTTURE E DEI TRASPORTI</div>
+          <div class="mit-subtitle">Simulatore Ufficiale Esame Teorico — Patente di Guida Categoria B</div>
+        </div>
+      </div>
+      <a href="/admin" class="admin-link">Area Admin / Genitore</a>
+    </header>
+
+    <main class="start-container">
+      <section class="start-card">
+        <h1>Accesso alla Prova d'Esame</h1>
+        <p class="start-intro">
+          Inserisci il tuo nome e seleziona una delle <strong>3 schede ufficiali</strong> assegnate.
+          L'esame si svolgerà esclusivamente in modalità <strong>Schermo Intero (Fullscreen)</strong> con monitoraggio anti-cheat attivo.
+        </p>
+
+        <div class="rules-grid">
+          <div class="rule-box">
+            <span class="rule-value">30</span>
+            <span class="rule-label">Domande Vero/Falso</span>
+          </div>
+          <div class="rule-box">
+            <span class="rule-value">20 min</span>
+            <span class="rule-label">Tempo massimo</span>
+          </div>
+          <div class="rule-box">
+            <span class="rule-value">Max 3</span>
+            <span class="rule-label">Errori consentiti</span>
+          </div>
+          <div class="rule-box rule-box-warn">
+            <span class="rule-value">2</span>
+            <span class="rule-label">Uscite = Annullato</span>
+          </div>
+        </div>
+
+        <div class="anticheat-notice">
+          <strong>REGOLE DI SORVEGLIANZA ANTI-CHEAT:</strong>
+          <ul>
+            <li>Il test si avvia <strong>solo in Schermo Intero</strong>. Se esci dal Fullscreen, la prova viene oscurata finché non rientri e l'evento viene registrato.</li>
+            <li>Cambiare scheda del browser, ridurre a icona o cliccare su un'altra finestra genera una <strong>violazione immediata</strong>. Alla <strong>2ª violazione</strong> l'esame viene <strong>annullato automaticamente</strong>.</li>
+            <li>Tasto destro, copia/incolla, trascinamento immagini e DevTools sono disabilitati e monitorati.</li>
+            <li>Le domande lasciate senza risposta vengono conteggiate come <strong>errore</strong>.</li>
+          </ul>
+        </div>
+
+        <form id="start-form" autocomplete="off">
+          <div class="form-group">
+            <label for="candidate-name">Nome e Cognome del Candidato</label>
+            <input
+              type="text"
+              id="candidate-name"
+              name="candidateName"
+              placeholder="Es. Mario Rossi"
+              minlength="2"
+              maxlength="80"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Seleziona Scheda d'Esame</label>
+            <div id="test-selector" class="test-selector">
+              <div class="loading-tests">Caricamento schede ufficiali...</div>
+            </div>
+          </div>
+
+          <div id="start-error" class="error-banner hidden" role="alert"></div>
+
+          <button type="submit" id="btn-start-exam" class="btn-primary-large" disabled>
+            AVVIA ESAME IN SCHERMO INTERO
+          </button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <!-- =========================================================
+       SCHERMATA 2: TERMINALE D'ESAME MOTORIZZAZIONE CIVILE
+       ========================================================= -->
+  <div id="screen-exam" class="screen exam-locked">
+    <header class="exam-topbar">
+      <div class="topbar-left">
+        <span class="topbar-badge">PATENTE B</span>
+        <span id="exam-sheet-label" class="topbar-sheet">TEST 1</span>
+        <span class="topbar-sep">|</span>
+        <span id="exam-candidate-label" class="topbar-candidate">Candidato</span>
+      </div>
+
+      <div class="topbar-center">
+        <div class="timer-box" id="timer-box">
+          <span class="timer-label">TEMPO RESIDUO</span>
+          <span id="timer-display" class="timer-value">20:00</span>
+        </div>
+        <div class="progress-box">
+          <span class="timer-label">RISPOSTE DATE</span>
+          <span id="answered-counter" class="progress-value">0 / 30</span>
+        </div>
+        <div class="violations-box" id="violations-box">
+          <span class="timer-label">VIOLAZIONI</span>
+          <span id="violations-counter" class="violations-value">0 / 2</span>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <button type="button" id="btn-open-submit" class="btn-submit-exam">
+          CONSEGNA ESAME
+        </button>
+      </div>
+    </header>
+
+    <!-- Griglia navigazione rapida 1..30 -->
+    <nav class="nav-grid-bar" aria-label="Navigazione domande da 1 a 30">
+      <div id="question-nav-grid" class="question-nav-grid"></div>
+    </nav>
+
+    <!-- Area domanda stile terminale Motorizzazione -->
+    <main class="exam-workspace">
+      <div class="question-panel">
+        <!-- Colonna sinistra: immagine segnale / incrocio -->
+        <div class="image-column">
+          <div class="image-frame" id="image-frame">
+            <img id="question-img" src="" alt="Figura segnale o incrocio" draggable="false" class="hidden" />
+            <div id="no-image-placeholder" class="no-image-placeholder">
+              <div class="no-img-icon">—</div>
+              <div>Nessuna figura associata a questa domanda</div>
+            </div>
+          </div>
+          <div class="image-caption" id="question-topic-label"></div>
+        </div>
+
+        <!-- Colonna destra: testo domanda + pulsanti V / F -->
+        <div class="content-column">
+          <div class="question-meta">
+            <span id="question-number-badge" class="q-number-badge">DOMANDA 1 DI 30</span>
+            <span id="question-status-badge" class="q-status-badge">Non risposta</span>
+          </div>
+
+          <div class="question-text-box">
+            <p id="question-text" class="question-text"></p>
+          </div>
+
+          <div class="vf-controls">
+            <button type="button" id="btn-true" class="vf-btn vf-btn-true" data-answer="true">
+              <span class="vf-letter">V</span>
+              <span class="vf-word">VERO</span>
+            </button>
+            <button type="button" id="btn-false" class="vf-btn vf-btn-false" data-answer="false">
+              <span class="vf-letter">F</span>
+              <span class="vf-word">FALSO</span>
+            </button>
+          </div>
+
+          <div class="step-controls">
+            <button type="button" id="btn-prev" class="btn-step">◄ Domanda Precedente</button>
+            <button type="button" id="btn-next" class="btn-step btn-step-primary">Domanda Successiva ►</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- =========================================================
+       SCHERMATA 3: ESITO FINALE / ANNULLAMENTO
+       ========================================================= -->
+  <div id="screen-result" class="screen">
+    <header class="mit-header">
+      <div class="mit-brand">
+        <div class="mit-emblem" aria-hidden="true">MIT</div>
+        <div>
+          <div class="mit-title">MINISTERO DELLE INFRASTRUTTURE E DEI TRASPORTI</div>
+          <div class="mit-subtitle">Verbale di Esito — Prova Teorica Patente B</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="result-container">
+      <section class="result-card" id="result-card">
+        <div id="result-banner" class="result-banner"></div>
+        <h2 id="result-headline" class="result-headline"></h2>
+        <p id="result-subtext" class="result-subtext"></p>
+
+        <div id="result-stats" class="result-stats">
+          <div class="stat-item">
+            <span class="stat-label">Candidato</span>
+            <strong id="res-candidate">—</strong>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Scheda</span>
+            <strong id="res-sheet">—</strong>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Risposte Esatte</span>
+            <strong id="res-correct">—</strong>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Errori (incl. non date)</span>
+            <strong id="res-errors">—</strong>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Non Risposte</span>
+            <strong id="res-unanswered">—</strong>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Tempo Impiegato</span>
+            <strong id="res-duration">—</strong>
+          </div>
+        </div>
+
+        <p class="result-admin-hint">
+          Il verbale completo, il log anti-cheat e la revisione degli errori sono disponibili nel pannello protetto <a href="/admin">/admin</a>.
+        </p>
+
+        <button type="button" id="btn-back-home" class="btn-primary-large">
+          TORNA ALLA SCHERMATA INIZIALE
+        </button>
+      </section>
+    </main>
+  </div>
+
+  <!-- =========================================================
+       OVERLAY BLOCCANTE: USCITA DAL FULLSCREEN
+       ========================================================= -->
+  <div id="overlay-fullscreen" class="blocking-overlay hidden" role="dialog" aria-modal="true">
+    <div class="overlay-box">
+      <div class="overlay-icon">⚠</div>
+      <h2>SCHERMO INTERO INTERROTTO</h2>
+      <p>
+        Hai disattivato la modalità Schermo Intero durante l'esame.
+        La visualizzazione delle domande è stata oscurata e l'evento è stato registrato nel log anti-cheat.
+      </p>
+      <p class="overlay-note">Il timer continua a scorrere. Rientra subito in Schermo Intero per proseguire.</p>
+      <button type="button" id="btn-reenter-fullscreen" class="btn-primary-large">
+        RIENTRA IN SCHERMO INTERO
+      </button>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODALE AVVISO 1ª VIOLAZIONE (CAMBIO SCHEDA / FINESTRA)
+       ========================================================= -->
+  <div id="modal-violation" class="modal-backdrop hidden" role="alertdialog" aria-modal="true">
+    <div class="modal-box modal-danger">
+      <h2>ATTENZIONE — VIOLAZIONE 1 DI 2 REGISTRATA</h2>
+      <p id="violation-modal-text">
+        È stata rilevata un'uscita dalla schermata d'esame (cambio scheda o finestra).
+        L'evento è stato salvato nel registro anti-cheat.
+      </p>
+      <p class="modal-strong-warn">
+        Alla prossima uscita l'esame verrà TERMINATO e ANNULLATO automaticamente!
+      </p>
+      <button type="button" id="btn-ack-violation" class="btn-danger-solid">
+        HO CAPITO, TORNA ALL'ESAME
+      </button>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODALE CONFERMA CONSEGNA ESAME
+       ========================================================= -->
+  <div id="modal-confirm-submit" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-box">
+      <h2>Conferma Consegna Esame</h2>
+      <p id="confirm-summary-text"></p>
+      <p id="confirm-unanswered-warn" class="confirm-warn hidden"></p>
+      <div class="modal-actions">
+        <button type="button" id="btn-cancel-submit" class="btn-secondary">Torna alla Scheda</button>
+        <button type="button" id="btn-confirm-submit" class="btn-submit-exam">Conferma e Consegna</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/exam.js" defer></script>
+</body>
+</html>

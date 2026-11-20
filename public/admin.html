@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pannello Admin / Genitore — Simulatore Patente B</title>
+  <link rel="stylesheet" href="/css/admin.css" />
+</head>
+<body>
+  <header class="admin-header">
+    <div class="admin-brand">
+      <span class="admin-badge">ADMIN</span>
+      <div>
+        <h1>Pannello Genitore / Supervisore — Patente B</h1>
+        <p>Storico tentativi, log anti-cheat, revisione errori e gestione schede</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <a href="/" class="btn-outline">← Torna al Terminale Esame</a>
+      <button type="button" id="btn-logout" class="btn-danger-outline hidden">Esci</button>
+    </div>
+  </header>
+
+  <!-- LOGIN VIEW -->
+  <main id="view-login" class="login-wrapper">
+    <section class="login-card">
+      <h2>Accesso Protetto</h2>
+      <p>Inserisci la password amministratore configurata nel file <code>.env</code>.</p>
+      <form id="login-form">
+        <label for="admin-password">Password Admin</label>
+        <input type="password" id="admin-password" required autocomplete="current-password" />
+        <div id="login-error" class="alert-error hidden"></div>
+        <button type="submit" class="btn-primary">Accedi al Pannello</button>
+      </form>
+    </section>
+  </main>
+
+  <!-- DASHBOARD VIEW -->
+  <main id="view-dashboard" class="dashboard-container hidden">
+    <!-- KPI CARDS -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-label">Tentativi Totali</span>
+        <strong id="kpi-total" class="kpi-value">0</strong>
+      </div>
+      <div class="kpi-card kpi-green">
+        <span class="kpi-label">Promossi (≤ 3 errori)</span>
+        <strong id="kpi-passed" class="kpi-value">0</strong>
+      </div>
+      <div class="kpi-card kpi-red">
+        <span class="kpi-label">Bocciati (≥ 4 errori)</span>
+        <strong id="kpi-failed" class="kpi-value">0</strong>
+      </div>
+      <div class="kpi-card kpi-dark-red">
+        <span class="kpi-label">Annullati Anti-Cheat</span>
+        <strong id="kpi-invalidated" class="kpi-value">0</strong>
+      </div>
+    </section>
+
+    <!-- GESTIONE 3 SCHEDE FISSE -->
+    <section class="panel-card">
+      <div class="panel-header">
+        <div>
+          <h2>Schede d'Esame Attive (Test 1, Test 2, Test 3)</h2>
+          <p id="active-tests-meta" class="muted-text">Caricamento...</p>
+        </div>
+        <button type="button" id="btn-regenerate" class="btn-warning">
+          ↻ Rigenera Nuove 3 Schede
+        </button>
+      </div>
+      <div id="regen-feedback" class="alert-success hidden"></div>
+    </section>
+
+    <!-- STORICO TENTATIVI -->
+    <section class="panel-card">
+      <div class="panel-header">
+        <h2>Storico Tentativi</h2>
+        <div class="filters-bar">
+          <select id="filter-slot" aria-label="Filtra per test">
+            <option value="">Tutti i Test</option>
+            <option value="1">Test 1</option>
+            <option value="2">Test 2</option>
+            <option value="3">Test 3</option>
+          </select>
+          <select id="filter-status" aria-label="Filtra per esito">
+            <option value="">Tutti gli Esiti</option>
+            <option value="PASSED">Promosso</option>
+            <option value="FAILED">Bocciato</option>
+            <option value="INVALIDATED">Annullato (Anti-Cheat)</option>
+            <option value="IN_PROGRESS">In corso / Abbandonato</option>
+          </select>
+          <button type="button" id="btn-refresh" class="btn-secondary">Aggiorna</button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="attempts-table">
+          <thead>
+            <tr>
+              <th>Data / Ora Inizio</th>
+              <th>Candidato</th>
+              <th>Scheda</th>
+              <th>Esito</th>
+              <th>Esatte / Errori</th>
+              <th>Durata</th>
+              <th>Violazioni</th>
+              <th>Log</th>
+              <th>Azioni</th>
+            </tr>
+          </thead>
+          <tbody id="attempts-tbody">
+            <tr><td colspan="9" class="empty-cell">Nessun tentativo registrato.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODALE DETTAGLIO TENTATIVO (LOG ANTI-CHEAT + ERRORI) -->
+  <div id="detail-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-large">
+      <div class="modal-header">
+        <div>
+          <h2 id="detail-title">Dettaglio Tentativo</h2>
+          <p id="detail-subtitle" class="muted-text"></p>
+        </div>
+        <button type="button" id="btn-close-detail" class="btn-close">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div id="detail-meta-grid" class="detail-meta-grid"></div>
+
+        <!-- Tabs: Revisione Errori | Log Anti-Cheat | Tutte le 30 Domande -->
+        <div class="detail-tabs">
+          <button type="button" class="tab-btn active" data-tab="wrong">Domande Sbagliate (<span id="count-wrong">0</span>)</button>
+          <button type="button" class="tab-btn" data-tab="logs">Log Anti-Cheat (<span id="count-logs">0</span>)</button>
+          <button type="button" class="tab-btn" data-tab="all">Tutte le 30 Domande</button>
+        </div>
+
+        <div id="tab-wrong" class="tab-panel active"></div>
+        <div id="tab-logs" class="tab-panel hidden"></div>
+        <div id="tab-all" class="tab-panel hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/admin.js" defer></script>
+</body>
+</html>

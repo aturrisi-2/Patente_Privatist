@@ -1,0 +1,15 @@
+services:
+  patente-b:
+    build: .
+    container_name: patente-b-simulator
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PORT=3080
+      - HOST=0.0.0.0
+      - DB_PATH=/app/db/patente.sqlite
+    ports:
+      - "127.0.0.1:${PORT:-3080}:3080"
+    volumes:
+      - ./db:/app/db
