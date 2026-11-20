@@ -118,6 +118,7 @@ app.get('/api/tests', (_req, res) => {
 app.post('/api/attempts/start', (req, res) => {
   const slot = Number(req.body?.slot);
   const rawName = typeof req.body?.candidateName === 'string' ? req.body.candidateName.trim() : '';
+  const mobileMode = Boolean(req.body?.mobileProtectedMode);
 
   if (![1, 2, 3].includes(slot)) {
     return res.status(400).json({ error: 'Seleziona un test valido (Test 1, Test 2 o Test 3).' });
@@ -149,6 +150,10 @@ app.post('/api/attempts/start', (req, res) => {
   const ip = getClientIp(req);
   const ua = String(req.headers['user-agent'] || '').slice(0, 255);
 
+  const startDetails = mobileMode
+    ? `Avviato Test ${test.slot} (v${test.version}) in Modalità Mobile Protetta (Fullscreen API non supportata da iOS)`
+    : `Avviato Test ${test.slot} (v${test.version}) in modalità Fullscreen`;
+
   const createAttemptTx = db.transaction(() => {
     db.prepare(`
       INSERT INTO attempts (
@@ -172,7 +177,7 @@ app.post('/api/attempts/start', (req, res) => {
     db.prepare(`
       INSERT INTO anticheat_logs (attempt_id, event_type, details, created_at)
       VALUES (?, 'EXAM_START', ?, ?)
-    `).run(attemptId, `Avviato Test ${test.slot} (v${test.version}) in modalità Fullscreen`, startedAt);
+    `).run(attemptId, startDetails, startedAt);
   });
 
   createAttemptTx();

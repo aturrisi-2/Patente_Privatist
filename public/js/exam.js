@@ -23,6 +23,7 @@
     lastViolationTs: 0,
     lastShortcutLogTs: 0,
     fullscreenExitExpected: false,
+    fullscreenRequired: true,
   };
 
   // ============================================================
@@ -110,6 +111,21 @@
       el.startError.textContent = msg;
       el.startError.classList.remove('hidden');
     }
+  }
+
+  function supportsFullscreen() {
+    const docEl = document.documentElement;
+    const enabled =
+      document.fullscreenEnabled !== false &&
+      document.webkitFullscreenEnabled !== false;
+    return (
+      enabled &&
+      Boolean(
+        docEl.requestFullscreen ||
+          docEl.webkitRequestFullscreen ||
+          docEl.msRequestFullscreen
+      )
+    );
   }
 
   function isInFullscreen() {
@@ -251,7 +267,7 @@
   }
 
   function onFullscreenChange() {
-    if (!state.examActive || state.fullscreenExitExpected) return;
+    if (!state.examActive || state.fullscreenExitExpected || !state.fullscreenRequired) return;
     if (!isInFullscreen()) {
       el.overlayFullscreen.classList.remove('hidden');
       logAntiCheatEvent('FULLSCREEN_EXIT', 'Il candidato è uscito dalla modalità Schermo Intero');
@@ -272,8 +288,8 @@
 
   function onWindowBlur() {
     if (!state.examActive) return;
-    // Ignore blur caused immediately while fullscreen overlay is already active
-    if (!isInFullscreen()) return;
+    // Ignore blur caused immediately while fullscreen overlay is already active on desktop/Android
+    if (state.fullscreenRequired && !isInFullscreen()) return;
     handleScreenExitViolation('WINDOW_BLUR', 'Perdita focus finestra (click su altra app o finestra)');
   }
 
@@ -518,20 +534,28 @@
       return;
     }
 
-    // 1. Mandatory Fullscreen activation BEFORE starting exam
-    try {
-      await requestFullscreenSafe();
-    } catch {
-      showStartError(
-        'Impossibile attivare la modalità Schermo Intero. L\'esame non può iniziare senza Fullscreen attivo.'
-      );
-      return;
-    }
+    // 1. Mandatory Fullscreen on Desktop & Android; protected mobile fallback on iOS/iPhone
+    //    (Apple WebKit on iPhone does not support document.documentElement.requestFullscreen)
+    let mobileProtectedMode = false;
+    if (supportsFullscreen()) {
+      state.fullscreenRequired = true;
+      try {
+        await requestFullscreenSafe();
+      } catch {
+        showStartError(
+          'Impossibile attivare la modalità Schermo Intero. L\'esame non può iniziare senza Fullscreen attivo.'
+        );
+        return;
+      }
 
-    // Double check fullscreen is active
-    if (!isInFullscreen()) {
-      showStartError('Devi acconsentire alla modalità Schermo Intero per iniziare la prova.');
-      return;
+      if (!isInFullscreen()) {
+        showStartError('Devi acconsentire alla modalità Schermo Intero per iniziare la prova.');
+        return;
+      }
+    } else {
+      state.fullscreenRequired = false;
+      mobileProtectedMode = true;
+      window.scrollTo(0, 1);
     }
 
     el.btnStartExam.disabled = true;
@@ -540,7 +564,11 @@
       const res = await fetch('/api/attempts/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slot: state.selectedSlot, candidateName }),
+        body: JSON.stringify({
+          slot: state.selectedSlot,
+          candidateName,
+          mobileProtectedMode,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -686,7 +714,7 @@
 
   el.btnAckViolation.addEventListener('click', async () => {
     el.modalViolation.classList.add('hidden');
-    if (!isInFullscreen()) {
+    if (state.fullscreenRequired && !isInFullscreen()) {
       try {
         await requestFullscreenSafe();
       } catch {
